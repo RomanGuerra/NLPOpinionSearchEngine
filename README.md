@@ -8,26 +8,37 @@ This project is using Anaconda to install libraries.
 To recreate the environment needed for this project, follow the steps below:
 
 1. Install **Conda** if not already installed.
-   
-2. Create the environment using the provided `environment.yml` file:
+
+2. Change to **code/** directory.
+   ```bash
+   cd code
+   ```
+
+3. Create the Conda **NLP** environment using the provided `environment.yml` file:
    ```bash
    conda env create -f environment.yml
    ```
 
 ### Project Structure
-- **build_index.py**: Script to preprocess data and build the inverted index.
-- **boolean_search.py**: Script containing the main Boolean search function and helper functions.
-- **boolean_search_help.py**: Script for running and testing different query methods.
-- **data/**: Folder to store pickle data files.
-- **output/**: Folder to store generated pickle files for each query and method.
-- **index/**: Folder containing serialized index files and CSV files.
-- **nltk_data/**: You will need to download NLTK libraries to this folder.
+- **code/ :** Folder to store code.
+   - **preprocess.py**: Script to to preprocess data.
+   - **build_index.py**: Script build the inverted index.
+   - **boolean_search.py**: Script containing the main Boolean search function.
+   - **boolean_search_help.py**: Script for running and testing different query methods.
 
-### Building Index
-Not needed. Index is already built, so this command is here just incase.
+- **data/ :** Folder to store input data files.
+- **output/**: Folder to store generated output files.
+- **index/**: Folder containing pickle files.
+- **nltk_data/**: Folder to download NLTK libraries.
+
+### Building Search Engine 
+Run these commands to preprocess the data, build the inverted index, and set up search engine:
 ```bash
+python preprocess.py
 python build_index.py
+python search_engine.py
 ```
+
 ### Running the Search
 You can run the Boolean search using the provided `boolean_search.py` script. Here's an example:
 
@@ -36,24 +47,37 @@ python boolean_search_help.py --aspect1 "audio" --aspect2 "quality" --opinion "p
 ```
 
 ### Available Query Methods
-1. **Method 1**: aspect1 OR aspect2 OR opinion
-2. **Method 2**: aspect1 AND aspect2 AND opinion
-3. **Method 3**: (aspect1 OR aspect2) AND opinion
+1. **Method 1**: Boolean Search
+2. **Method 2**: Rating Search
+3. **Method 3**: Sentiment Analysis
+4. **Method 4**: Topic Modeling
 
-### Running Project Landmark
+### Running Project Queries
 
-Not needed. Copy this entire command into your terminal to create output files for project landmark.
+Use the following commands to generate output files for the project:
 ```
 python boolean_search_help.py --aspect1 audio --aspect2 quality --opinion poor --method method1
 python boolean_search_help.py --aspect1 audio --aspect2 quality --opinion poor --method method2
 python boolean_search_help.py --aspect1 audio --aspect2 quality --opinion poor --method method3
+python boolean_search_help.py --aspect1 audio --aspect2 quality --opinion poor --method method4
 python boolean_search_help.py --aspect1 wifi --aspect2 signal --opinion strong --method method1
 python boolean_search_help.py --aspect1 wifi --aspect2 signal --opinion strong --method method2
 python boolean_search_help.py --aspect1 wifi --aspect2 signal --opinion strong --method method3
+python boolean_search_help.py --aspect1 wifi --aspect2 signal --opinion strong --method method4
 python boolean_search_help.py --aspect1 gps --aspect2 map --opinion useful --method method1
 python boolean_search_help.py --aspect1 gps --aspect2 map --opinion useful --method method2
 python boolean_search_help.py --aspect1 gps --aspect2 map --opinion useful --method method3
+python boolean_search_help.py --aspect1 gps --aspect2 map --opinion useful --method method4
 python boolean_search_help.py --aspect1 image --aspect2 quality --opinion sharp --method method1
 python boolean_search_help.py --aspect1 image --aspect2 quality --opinion sharp --method method2
 python boolean_search_help.py --aspect1 image --aspect2 quality --opinion sharp --method method3
+python boolean_search_help.py --aspect1 image --aspect2 quality --opinion sharp --method method4
 ```
+
+## Contact
+
+For any questions or issues, feel free to reach out:
+
+- **Roman Guerra**
+- **Email**: [rguerra6@cougarnet.uh.edu](mailto:rguerra6@cougarnet.uh.edu)
+- **Teams**: Available via Teams
