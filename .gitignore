@@ -1,3 +1,11 @@
 # Datasets
 data/
 nltk_data/
+report/
+opinion-lexicon-English/
+docs/
+code/split_data/
+index/
+lda/
+output/
+scoring/
