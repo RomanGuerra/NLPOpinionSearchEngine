@@ -1,100 +1,129 @@
 import pandas as pd
-import nltk
-import tkinter as tk
 import os
 from collections import defaultdict
 import pickle
+import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
+from nltk import word_tokenize
 from tqdm import tqdm
-
-nltk_data_path = os.path.join(os.getcwd(), 'nltk_data')
-nltk.data.path.append(nltk_data_path)
-
-df = pd.read_pickle("data/reviews_segment.pkl")
-df["doc_id"] = range(1, len(df) + 1)
-df.info(verbose=True)
-
-# Preprocess Data
-# Remove apostrophes from the data
-df = df.applymap(lambda x: x.strip("'") if isinstance(x, str) else x)
-
-# Build Inverted Index
-
-# Initialize inverted index
-inverted_index = defaultdict(set)
-term_to_id = {}  # Maps terms to unique integer IDs
-id_to_term = {}  # Reverse mapping of IDs to terms
-current_id = 1  # Start term IDs from 1
-
-stop_words = set(stopwords.words("english"))  # Load stopwords
-lemmatizer = WordNetLemmatizer()  # Initialize lemmatizer
-
-print("Building Inverted Index...")
-
-# Build the inverted index
-for _, row in tqdm(df.iterrows(), total=len(df), desc="Building Inverted Index"):
-    doc_id = row["doc_id"]
-    words = nltk.word_tokenize(row['review_text'].lower())  # Tokenize and lowercase text
-    
-    for word in words:
-        if word.isalpha() and word not in stop_words:  # Filter non-alphabetic and stop words
-            word = lemmatizer.lemmatize(word)  # Lemmatize the word
-            if word not in term_to_id:
-                term_to_id[word] = current_id
-                id_to_term[current_id] = word
-                current_id += 1
-            term_id = term_to_id[word]
-            inverted_index[term_id].add(doc_id)  # Use .add() for set to avoid duplicates
-
-
-
-# Convert sets to sorted lists for each term
-inverted_index = {term_id: sorted(list(doc_ids)) for term_id, doc_ids in inverted_index.items()}
-
-# Save mappings as pickle files
-with open("index/term_to_id.pkl", "wb") as f:
-    pickle.dump(term_to_id, f)
-with open("index/id_to_term.pkl", "wb") as f:
-    pickle.dump(id_to_term, f)
-
-# Save the inverted index as a pickle file
-with open("index/inverted_index.pkl", "wb") as f:
-    pickle.dump(inverted_index, f)
-
-# Also save CSV files for verification purposes
-# Term-to-ID mapping
-term_to_id_df = pd.DataFrame(list(term_to_id.items()), columns=["term", "term_id"])
-term_to_id_df.to_csv("index/term_to_id.csv", index=False)
-
-# ID-to-term mapping
-id_to_term_df = pd.DataFrame(list(id_to_term.items()), columns=["term_id", "term"])
-id_to_term_df.to_csv("index/id_to_term.csv", index=False)
-
-# Inverted index CSV
-inverted_index_rows = [
-    {
-        "term_id": term_id,
-        "term": id_to_term[term_id],
-        "postings_list": " → ".join(map(str, doc_ids))
-    }
-    for term_id, doc_ids in inverted_index.items()
-]
-inverted_index_df = pd.DataFrame(inverted_index_rows)
-inverted_index_df.to_csv("index/inverted_index.csv", index=False)
-
-print("All files have been saved: pickle files for submission and CSV files for verification.")
-
+import re
 import sys
 
-# Print size of the inverted index
-print(f"Total unique terms in inverted index: {len(inverted_index)}")
+print("\033[33mBuilding Inverted Index...\033[0m")
 
-# Print size of postings list for a sample term
-sample_term_id = next(iter(inverted_index))  # Take the first term ID as a sample
-print(f"Size of postings list for sample term ID {sample_term_id} ({id_to_term[sample_term_id]}): {len(inverted_index[sample_term_id])}")
+# Importing the data
+nltk_data_path = os.path.join(os.getcwd(), '../nltk_data')
+nltk.data.path.append(nltk_data_path)
 
-# Print memory size of the entire inverted index in bytes and MB
+# Read data
+df = pd.read_pickle("../data/reviews_segment_processed.pkl")
+
+# Paths for output files
+output_dir = "../index"
+os.makedirs(output_dir, exist_ok=True)
+
+# Initialize NLTK tools
+stop_words = set(stopwords.words("english"))
+lemmatizer = WordNetLemmatizer()
+
+# Initialize components
+postings_list = []
+term_to_id = {}
+id_to_term = {}
+term_freq = defaultdict(int)
+current_id = 1
+
+# Additional statistics
+stats = {
+    "total_words": 0,
+    "alphabetic_words": 0,
+    "numeric_words": 0,
+    "stopwords": 0,
+    "lemmatized_words": 0
+}
+
+print("\033[33m")
+# Process reviews to build postings list and term mappings
+for _, row in tqdm(df.iterrows(), total=len(df), desc="Building Postings List"):
+    doc_id = row["doc_id"]
+    words = nltk.word_tokenize(row["review_text_cleaned"].lower())
+
+    for word in words:
+        stats["total_words"] += 1
+        if word.isalpha():
+            stats["alphabetic_words"] += 1
+
+        if word.isdigit():
+            stats["numeric_words"] += 1
+            
+        if word in stop_words:
+            stats["stopwords"] += 1
+
+        if word.isalpha() and word not in stop_words:
+            lemma = lemmatizer.lemmatize(word)
+            stats["lemmatized_words"] += 1
+            if lemma not in term_to_id:
+                term_to_id[lemma] = current_id
+                id_to_term[current_id] = lemma
+                current_id += 1
+            term_id = term_to_id[lemma]
+            postings_list.append((term_id, doc_id))
+            term_freq[term_id] += 1
+print("\033[0m")
+
+print("\033[33mSorting Postings List...\033[0m")
+
+# Sort the postings list
+postings_list = sorted(postings_list, key=lambda x: (x[0], x[1]))
+
+# Postings List with Terms (Sorted by Term and Document ID)
+postings_list_terms = [
+    {"Term": id_to_term[term_id], "Document ID": doc_id}
+    for term_id, doc_id in postings_list
+]
+
+# Sort the postings_list_terms explicitly by Term and Document ID before saving
+postings_list_terms_df = pd.DataFrame(postings_list_terms)
+postings_list_terms_df = postings_list_terms_df.sort_values(by=["Term", "Document ID"], ascending=[True, True])
+
+print("\033[33mBuilding Inverted Index...\033[0m")
+
+# Build the inverted index from the sorted postings list
+inverted_index = defaultdict(list)
+for term_id, doc_id in postings_list:
+    if not inverted_index[term_id] or inverted_index[term_id][-1] != doc_id:
+        inverted_index[term_id].append(doc_id)
+
+# Save Pickle Files
+with open(f"{output_dir}/inverted_index.pkl", "wb") as f:
+    pickle.dump(dict(inverted_index), f)
+with open(f"{output_dir}/term_to_id.pkl", "wb") as f:
+    pickle.dump(term_to_id, f)
+with open(f"{output_dir}/id_to_term.pkl", "wb") as f:
+    pickle.dump(id_to_term, f)
+with open(f"{output_dir}/postings_list.pkl", "wb") as f:
+    pickle.dump(postings_list, f)
+with open(f"{output_dir}/term_freq.pkl", "wb") as f:
+    pickle.dump(term_freq, f)
+with open(f"{output_dir}/stats.pkl", "wb") as f:
+    pickle.dump(stats, f)
+
+# Save Statistics
+pd.DataFrame(stats.items(), columns=["Metric", "Count"]).to_csv(f"{output_dir}/stats.csv", index=False)
+
+# Print Statistics
+print("\033[36m")
+print(f"Total unique terms in inverted index: {len(inverted_index):,}")
 memory_size_bytes = sys.getsizeof(inverted_index)
-memory_size_mb = memory_size_bytes / (1024 ** 2)  # Convert bytes to MB
-print(f"Memory size of inverted index: {memory_size_bytes} bytes ({memory_size_mb:.2f} MB)")
+memory_size_mb = memory_size_bytes / (1024 ** 2)
+print(f"Memory size of inverted index: {memory_size_bytes:,} bytes ({memory_size_mb:.2f} MB)")
+
+print("\nTotal words:", stats["total_words"])
+print("Alphabetic words:", stats["alphabetic_words"])
+print("Numeric words:", stats["numeric_words"])
+print("Stopwords:", stats["stopwords"])
+print("Lemmatized words:", stats["lemmatized_words"])
+print("\033[0m")
+
+print("\033[32mBuilding Inverted Index Complete.\033[0m")
