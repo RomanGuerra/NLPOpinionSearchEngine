@@ -5,23 +5,26 @@ import os
 import nltk
 from nltk.stem import WordNetLemmatizer
 
-nltk_data_path = os.path.join(os.getcwd(), 'nltk_data')
+print("\033[33mBoolean Search...\033[0m")
+
+# Importing the data
+nltk_data_path = os.path.join(os.getcwd(), '../nltk_data')
 nltk.data.path.append(nltk_data_path)
 
-lemmatizer = WordNetLemmatizer()
+# Load the document data (adjust the path as needed)
+df = pd.read_pickle("../data/reviews_segment_processed.pkl")
 
-# Load Reviews Segment
-df = pd.read_pickle("data/reviews_segment.pkl")
-df["doc_id"] = range(1, len(df) + 1)
-
-# Load Inverted Index
-with open("index/inverted_index.pkl", "rb") as f:
+# Load inverted index from Pickle file (optimized loading)
+with open("../index/inverted_index.pkl", "rb") as f:
     inversed_index = pickle.load(f)
-
-with open("index/term_to_id.pkl", "rb") as f:
+with open("../index/term_to_id.pkl", "rb") as f:
     term_to_id = pickle.load(f)
 
-# Intersection Function
+lemmatizer = WordNetLemmatizer()
+def lemmatize_terms(terms):
+    return [lemmatizer.lemmatize(term) for term in terms]
+
+# Boolean search helper functions
 def intersect(p1, p2):
     answer = []
     i, j = 0, 0
@@ -36,21 +39,26 @@ def intersect(p1, p2):
             j += 1
     return answer
 
-# Union Function
 def union(p1, p2):
     return sorted(set(p1).union(set(p2)))
 
-# Boolean Search Function
 def boolean_search(aspect1, aspect2, opinion, method):
-    # Lemmatize the query terms
-    aspect1 = lemmatizer.lemmatize(aspect1.lower())
-    aspect2 = lemmatizer.lemmatize(aspect2.lower())
-    opinion = lemmatizer.lemmatize(opinion.lower())
+    min_length = 2
+    # Filter terms based on minimum length
+    aspect1 = aspect1 if len(aspect1) >= min_length else None
+    aspect2 = aspect2 if len(aspect2) >= min_length else None
+    opinion = opinion if len(opinion) >= min_length else None
+
+    # Remove None values before searching
+    terms = [t for t in [aspect1, aspect2, opinion] if t]
+
+    # Lemmatize query terms
+    aspect1, aspect2, opinion = lemmatize_terms([aspect1, aspect2, opinion])
 
     # Convert terms to their respective term IDs
-    aspect1_id = term_to_id.get(aspect1)
-    aspect2_id = term_to_id.get(aspect2)
-    opinion_id = term_to_id.get(opinion)
+    aspect1_id = term_to_id.get(aspect1.lower())
+    aspect2_id = term_to_id.get(aspect2.lower())
+    opinion_id = term_to_id.get(opinion.lower())
 
     # Retrieve document IDs from the inverted index
     aspect1_docs = set(inversed_index.get(aspect1_id, []))
@@ -70,9 +78,5 @@ def boolean_search(aspect1, aspect2, opinion, method):
         result_docs = aspect_docs.intersection(opinion_docs)
     else:
         print("Invalid method.")
-        return []
-
-    # Map `doc_id` results to `review_id`
-    review_ids = df[df["doc_id"].isin(result_docs)]["review_id"].tolist()
-    
-    return review_ids
+        return []        
+    return result_docs
