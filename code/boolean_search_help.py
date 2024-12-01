@@ -2,10 +2,8 @@ import pandas as pd
 import argparse
 import pickle
 import argparse
-from boolean_search import boolean_search
-from boolean_rating_search import boolean_rating_search
-from boolean_semantic_search import boolean_semantic_search
-from topic_model_search import topic_model_search
+
+
 from pathlib import Path
 
 # Load inverted index and term mappings
@@ -19,24 +17,30 @@ def method1(aspect1, aspect2, opinion):
     """
     the first method 
     """
+    from boolean_search import boolean_search
+    
     return boolean_search(aspect1, aspect2, opinion, method="method2")
 
 def method2(aspect1, aspect2, opinion):
     """
     the second method 
     """
+    from boolean_rating_search import boolean_rating_search
     return boolean_rating_search(aspect1, aspect2, opinion, method="method2")
 
 def method3(aspect1, aspect2, opinion):
     """
     the third method 
     """
+    from boolean_semantic_search import boolean_semantic_search
     return boolean_semantic_search(aspect1, aspect2, opinion, method="method2")
 
 def method4(aspect1, aspect2, opinion):
     """
     the fourth method 
     """
+    from topic_model_search import topic_model_search
+
     return topic_model_search(aspect1, aspect2, opinion, method="method2")
 
 def save_results(result, aspect1, aspect2, opinion, method_name):
