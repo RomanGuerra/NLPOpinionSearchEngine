@@ -16,6 +16,11 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
 import numpy as np
 
+
+# Directory to save the TF-IDF artifacts
+project_output = "../output"
+os.makedirs(project_output, exist_ok=True)
+
 #############################################
 ##### Rating Search Preprocessing ###########
 print("\033[33mRating Search...\033[0m")
