@@ -52,7 +52,7 @@ def save_results(result, aspect1, aspect2, opinion, method_name):
     revs = pd.DataFrame(unique_results, columns=["review_id"])
 
     # Define output path
-    filename = f"../output/{method_name}_{aspect1}_{aspect2}_{opinion}.pkl"
+    filename = f"../output/{aspect1}_{aspect2}_{opinion}_{method_name}.pkl"
     revs.to_pickle(filename)
     print(f"Results saved to {filename}")
 
@@ -72,9 +72,11 @@ def main():
     review_df = pd.read_pickle("../data/reviews_segment_processed.pkl")
 
     aspect1, aspect2, opinion = args.aspect1, args.aspect2, args.opinion
+    method = args.method.lower()
 
     if args.method.lower() == "method1":
         result = method1(aspect1, aspect2, opinion)
+        method_name = "baseline"
         # Map doc_id to review_id
         result_review_ids = review_df.loc[review_df['doc_id'].isin(result), 'review_id']
         revs = pd.DataFrame({"review_id": result_review_ids})
@@ -82,6 +84,7 @@ def main():
 
     elif args.method.lower() == "method2":
         result = method2(aspect1, aspect2, opinion)
+        method_name = "ratingsearch"
 
         if isinstance(result, pd.DataFrame):  # If already a DataFrame (as returned by `boolean_rating_search`)
             if 'review_id' in result.columns:
@@ -100,6 +103,7 @@ def main():
 
     elif args.method.lower() == "method3":
         result = method3(aspect1, aspect2, opinion)
+        method_name = "sentimentanalysis"
         if isinstance(result, pd.DataFrame):  # If already a DataFrame (as returned by `boolean_rating_search`)
             if 'review_id' in result.columns:
                 revs = result[['review_id']].copy()
@@ -114,6 +118,7 @@ def main():
             return
     elif args.method.lower() == "method4":
         result = method1(aspect1, aspect2, opinion)
+        method_name = "topicmodeling"
         # Map doc_id to review_id
         result_review_ids = review_df.loc[review_df['doc_id'].isin(result), 'review_id']
         revs = pd.DataFrame({"review_id": result_review_ids})
@@ -123,7 +128,7 @@ def main():
         return
 
     # Save results
-    filename = f"../output/{args.method}_{args.aspect1}_{args.aspect2}_{args.opinion}.pkl"
+    filename = f"../output/{args.aspect1}_{args.aspect2}_{args.opinion}_{method_name}.pkl"
     revs.to_pickle(filename)
 
 if __name__ == "__main__":
